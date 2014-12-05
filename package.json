@@ -3,5 +3,8 @@
   "version": "0.0.1",
   "description": "GLSL VGA renderer",
   "author": "Pwootage",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "less": "^2.1.1"
+  }
 }
