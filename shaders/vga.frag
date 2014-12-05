@@ -17,13 +17,14 @@ void main(void) {
     highp vec2 cell = vec2(pos.x * hRatio, pos.y * vRatio);
 
     highp vec4 cVec = texture2D(textBuff, cell);
-    highp float c = (cVec.a * 256.0 + cVec.b * 65536.0);
+    highp int c = int(cVec.a * 16.0 * 16.0);
+//    highp float c = (cVec.a * 16.0 * 16.0 + cVec.b * 256.0 * 16.0);
     highp float fg = texture2D(textBuff, cell).a * 256.0;
     highp float bg = texture2D(textBuff, cell).a * 256.0;
 
     highp float tileS = (8.0/128.0);
-    highp float tileX = floor(c / 16.0) * tileS;
-    highp float tileY = (3.0) * tileS;//floor(mod(c, 16.0)) * tileS;
+    highp float tileX = float(c - ((c / 16) * 16)) * tileS;
+    highp float tileY = float(c / 16) * tileS;
     highp float offX = fract(cell.x * width) * tileS;
     highp float offY = fract(cell.y * height) * tileS;
     highp vec4 p = texture2D(font, vec2(tileX + offX, tileY + offY));
