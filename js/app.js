@@ -1,1 +1,5 @@
-var app = angular.module("vga", ["ng-route"]);
+var app = angular.module("vga", ["ngRoute"]);
+
+app.controller("testBufferController", function ($scope) {
+
+});
