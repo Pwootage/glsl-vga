@@ -17,10 +17,10 @@ angular.module("vga").directive('vgaBuffer', function() {
 });
 
 function VGABuffer(canvas, $http, $q) {
-  var VGA_WIDTH = 80;
-  var VGA_HEIGHT = 60;
-  var BUFF_WIDTH = 128; //Powers of 2
-  var BUFF_HEIGHT = 64;
+  var VGA_WIDTH = 8;//80;
+  var VGA_HEIGHT = 8;//60;
+  var BUFF_WIDTH = 8;//128; //Powers of 2
+  var BUFF_HEIGHT = 8;//64;
 
   var self = this;
   self.canvas = canvas;
@@ -38,6 +38,7 @@ function VGABuffer(canvas, $http, $q) {
   self.fgBufferBytes = undefined;
   self.bgBufferBytes = undefined;
 
+  self.fontTexture = undefined;
   self.textTexture = undefined;
   self.fgTexture = undefined;
   self.bgTexture = undefined;
@@ -83,20 +84,34 @@ function VGABuffer(canvas, $http, $q) {
     self.fgBuffer = new Uint16Array(BUFF_WIDTH * BUFF_HEIGHT);
     self.bgBuffer = new Uint16Array(BUFF_WIDTH * BUFF_HEIGHT);
 
-    var str = "a-";
-    for (var x = 1; x < VGA_WIDTH - 1; x++) {
-      for (var y = 1; y < VGA_HEIGHT - 1; y++) {
-        self.textBuffer[x + y * BUFF_WIDTH] = str.charCodeAt((x + y % 2) % str.length);
+    var str = "\0";
+    for (var x = 0; x < VGA_WIDTH; x++) {
+      for (var y = 0; y < VGA_HEIGHT; y++) {
+        self.textBuffer[x + y * BUFF_WIDTH] = (x + y * VGA_WIDTH) % 256;//str.charCodeAt((x + y % 2) % str.length);
         self.fgBuffer[x + y * BUFF_WIDTH] = 15; //White
         self.bgBuffer[x + y * BUFF_WIDTH] = 0; //Black
       }
     }
 
+    self.fontTexture = gl.createTexture();
     self.textTexture = gl.createTexture();
     self.fgTexture = gl.createTexture();
     self.bgTexture = gl.createTexture();
 
     self.pushBuffers();
+
+    var future = $q.defer();
+    toWaitFor.push(future);
+
+    var fontImage = new Image();
+    fontImage.onload = function() {
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, self.fontTexture);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_SHORT_4_4_4_4, fontImage);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    };
+    fontImage.src = "fonts/VGA-ROM.F08.png";
 
     //Load shaders
     var shaderFuture = $http.get("shaders/vga.frag");
@@ -104,6 +119,7 @@ function VGABuffer(canvas, $http, $q) {
     shaderFuture.success(function(data) {
       self.fragShader = createShader(data, gl.FRAGMENT_SHADER);
     });
+
     shaderFuture = $http.get("shaders/vga.vert");
     toWaitFor.push(shaderFuture);
     shaderFuture.success(function(data) {
@@ -137,10 +153,13 @@ function VGABuffer(canvas, $http, $q) {
       function updateRatioUniforms() {
         var hRatio = VGA_WIDTH / BUFF_WIDTH;
         var vRatio = VGA_HEIGHT / BUFF_HEIGHT;
-        gl.uniform1f(loc("width"), VGA_WIDTH / BUFF_WIDTH);
-        gl.uniform1f(loc("height"), VGA_HEIGHT / BUFF_HEIGHT);
+        gl.uniform1f(loc("hRatio"), VGA_WIDTH / BUFF_WIDTH);
+        gl.uniform1f(loc("vRatio"), VGA_HEIGHT / BUFF_HEIGHT);
       }
       updateRatioUniforms();
+
+      gl.uniform1f(loc("width"), VGA_WIDTH);
+      gl.uniform1f(loc("height"), VGA_HEIGHT);
       canvas.on("resize", updateRatioUniforms());
 
       //Begin main render loop
